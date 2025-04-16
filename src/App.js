@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import io from 'socket.io-client';
 import './App.css';
 
-const socket = io('https://omegle-backend-rux2.onrender.com');  // Ensure this matches your backend URL
+const socket = io('https://your-backend-url.onrender.com');  // Replace with your backend URL
 
 const App = () => {
   const [message, setMessage] = useState('');
