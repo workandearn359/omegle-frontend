@@ -2,12 +2,13 @@ import React, { useState, useEffect } from 'react';
 import io from 'socket.io-client';
 import './App.css';
 
-const socket = io('https://omegle-backend-rux2.onrender.com');
+const socket = io('https://omegle-backend-rux2.onrender.com');  // Ensure this matches your backend URL
 
 const App = () => {
   const [message, setMessage] = useState('');
   const [chatMessages, setChatMessages] = useState([]);
   const [isConnected, setIsConnected] = useState(false);
+  const [strangerConnected, setStrangerConnected] = useState(false);
 
   useEffect(() => {
     socket.on('connect', () => {
@@ -20,25 +21,30 @@ const App = () => {
       console.log('Disconnected from backend');
     });
 
-    socket.on('stranger-connected', () => {
-      alert('You have been connected with a stranger!');
+    socket.on('stranger', (data) => {
+      if (data.message) {
+        alert(data.message);
+      } else {
+        setStrangerConnected(true);
+        alert('You have been connected with a stranger!');
+      }
     });
 
-    socket.on('message', (message) => {
+    socket.on('chat message', (message) => {
       setChatMessages((prev) => [...prev, { sender: 'stranger', text: message }]);
     });
 
     return () => {
       socket.off('connect');
       socket.off('disconnect');
-      socket.off('stranger-connected');
-      socket.off('message');
+      socket.off('stranger');
+      socket.off('chat message');
     };
   }, []);
 
   const handleSendMessage = () => {
     if (message.trim()) {
-      socket.emit('message', message);
+      socket.emit('chat message', { id: socket.id, message });
       setChatMessages((prev) => [...prev, { sender: 'you', text: message }]);
       setMessage('');
     }
@@ -47,6 +53,7 @@ const App = () => {
   const handleNext = () => {
     socket.emit('next');
     setChatMessages([]);
+    setStrangerConnected(false);
   };
 
   return (
@@ -64,23 +71,32 @@ const App = () => {
               </div>
             ))}
           </div>
-          <div className="controls">
-            <textarea
-              className="textarea"
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              placeholder="Type a message..."
-            />
-            <div className="button-row">
-              <button onClick={handleSendMessage} disabled={!message.trim()}>
-                Send
-              </button>
-              <button onClick={handleNext}>Next</button>
+
+          {strangerConnected && (
+            <div className="controls">
+              <textarea
+                className="textarea"
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                placeholder="Type a message..."
+              />
+              <div className="button-row">
+                <button
+                  className="send-button"
+                  onClick={handleSendMessage}
+                  disabled={!message.trim()}
+                >
+                  Send
+                </button>
+                <button className="next-button" onClick={handleNext}>
+                  Next
+                </button>
+              </div>
             </div>
-          </div>
+          )}
         </>
       ) : (
-        <p>Connecting...</p>
+        <p className="connecting-message">Connecting...</p>
       )}
     </div>
   );
