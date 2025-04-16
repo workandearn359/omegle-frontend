@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import io from 'socket.io-client';
+import './App.css';
 
-const socket = io('http://localhost:10000'); // Make sure this matches your backend URL
+const socket = io('https://omegle-backend-rux2.onrender.com');
 
 const App = () => {
   const [message, setMessage] = useState('');
@@ -24,7 +25,7 @@ const App = () => {
     });
 
     socket.on('message', (message) => {
-      setChatMessages((prevMessages) => [...prevMessages, message]);
+      setChatMessages((prev) => [...prev, { sender: 'stranger', text: message }]);
     });
 
     return () => {
@@ -38,39 +39,49 @@ const App = () => {
   const handleSendMessage = () => {
     if (message.trim()) {
       socket.emit('message', message);
-      setChatMessages((prevMessages) => [...prevMessages, message]);
+      setChatMessages((prev) => [...prev, { sender: 'you', text: message }]);
       setMessage('');
     }
   };
 
   const handleNext = () => {
     socket.emit('next');
-    setChatMessages([]); // Clear chat history for the new connection
+    setChatMessages([]);
   };
 
   return (
-    <div>
-      <h1>Omegle Clone</h1>
-      <div>
-        {isConnected ? (
-          <div>
-            <div>
-              {chatMessages.map((msg, index) => (
-                <div key={index}>{msg}</div>
-              ))}
-            </div>
+    <div className="container">
+      <h1 className="title">Omegle Clone</h1>
+      {isConnected ? (
+        <>
+          <div className="chat-box">
+            {chatMessages.map((msg, index) => (
+              <div
+                key={index}
+                className={`message ${msg.sender === 'you' ? 'you' : 'stranger'}`}
+              >
+                <strong>{msg.sender === 'you' ? 'You' : 'Stranger'}:</strong> {msg.text}
+              </div>
+            ))}
+          </div>
+          <div className="controls">
             <textarea
+              className="textarea"
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               placeholder="Type a message..."
             />
-            <button onClick={handleSendMessage}>Send</button>
-            <button onClick={handleNext}>Next</button>
+            <div className="button-row">
+              <button onClick={handleSendMessage} disabled={!message.trim()}>
+                Send
+              </button>
+              <button onClick={handleNext}>Next</button>
+            </div>
           </div>
-        ) : (
-          <p>Connecting...</p>
-        )}
-      </div>
+        </>
+      ) : (
+        <p>Connecting...</p>
+      )}
     </div>
   );
 };
