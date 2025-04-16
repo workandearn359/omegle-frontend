@@ -2,13 +2,14 @@ import React, { useState, useEffect } from 'react';
 import io from 'socket.io-client';
 import './App.css';
 
-const socket = io('https://omegle-backend-rux2.onrender.com');
+const socket = io('https://omegle-backend-rux2.onrender.com'); // ✅ Correct URL
 
 const App = () => {
   const [message, setMessage] = useState('');
   const [chatMessages, setChatMessages] = useState([]);
   const [isConnected, setIsConnected] = useState(false);
   const [strangerConnected, setStrangerConnected] = useState(false);
+  const [strangerId, setStrangerId] = useState(null);
 
   useEffect(() => {
     socket.on('connect', () => {
@@ -24,8 +25,14 @@ const App = () => {
     socket.on('stranger', (data) => {
       if (data.message) {
         alert(data.message);
+
+        if (data.message === 'Your partner has disconnected.') {
+          setStrangerConnected(false);
+          setChatMessages([]);
+        }
       } else {
         setStrangerConnected(true);
+        setStrangerId(data.id);
         alert('You have been connected with a stranger!');
       }
     });
@@ -43,8 +50,8 @@ const App = () => {
   }, []);
 
   const handleSendMessage = () => {
-    if (message.trim()) {
-      socket.emit('chat message', { id: socket.id, message });
+    if (message.trim() && strangerConnected && strangerId) {
+      socket.emit('chat message', { id: strangerId, message });
       setChatMessages((prev) => [...prev, { sender: 'you', text: message }]);
       setMessage('');
     }
@@ -54,6 +61,7 @@ const App = () => {
     socket.emit('next');
     setChatMessages([]);
     setStrangerConnected(false);
+    setStrangerId(null);
   };
 
   return (
@@ -63,10 +71,7 @@ const App = () => {
         <>
           <div className="chat-box">
             {chatMessages.map((msg, index) => (
-              <div
-                key={index}
-                className={`message ${msg.sender === 'you' ? 'you' : 'stranger'}`}
-              >
+              <div key={index} className={`message ${msg.sender === 'you' ? 'you' : 'stranger'}`}>
                 <strong>{msg.sender === 'you' ? 'You' : 'Stranger'}:</strong> {msg.text}
               </div>
             ))}
